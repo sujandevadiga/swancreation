@@ -1,0 +1,19 @@
+{
+  "firmware_origin": "User upload mars_rover_goodera_ESP.rar",
+  "archive_sha256": "d201803da7e48b926c37f8f403da95c4e0a5cf267cf899f7d74e091bb9edec44",
+  "esptool_origin": "https://github.com/espressif/esptool/releases/download/v5.5.0/esptool-v5.5.0-windows-amd64.zip",
+  "esptool_archive_sha256": "e7142a6b6714173b8337e6044984198344c5da31341b333f3d89a59ed8d1ea57",
+  "files": {
+    "assets/ESPTOOL-LICENSE.txt": "189b1af95d661151e054cea10c91b3d754e4de4d3fecfb074c1fb29476f7167b",
+    "assets/ESPTOOL-README.md": "cc0171bb1f2f495dd1ffefbe637a0658f6c20d157b68dbf239f7b7f75f8c59a7",
+    "assets/boot_app0.bin": "f94c5d786a7a8fab06ac5d10e33bf37711a6697636dc037559ea19cc410a17f0",
+    "assets/build.options.json": "a491e2e858fe21269ab0f84b95e70e4447541b1da37bad535d2db2ff5871c6fc",
+    "assets/esptool.exe": "33df5f7e172531ea70307c37d82c4eafaa3e03cb86d4ccdeaf0287084d21d102",
+    "assets/flash_args": "89cd12bf2be5a45fe928d566743a97f184b7bba3baf1d99d5065c49e449939f1",
+    "assets/mars_rover_goodera_ESP.ino.bin": "4177ce3806a9eb43d38c0ba61c2b929d3aecfd5f881c498341ba25b72f912313",
+    "assets/mars_rover_goodera_ESP.ino.bootloader.bin": "427f96e10c620c4f062dab15da54fc45494d897e8397ae6f3aecc98c42d7e379",
+    "assets/mars_rover_goodera_ESP.ino.partitions.bin": "148b959cbff1c38aa8e1d5c0ba9d612c54997b945e56a63f41223eef650653a1",
+    "assets/partitions.csv": "2683fd26b661bc909dcb8a9f05723d36c4000f9396995941a278fda409b753f7",
+    "third_party/esptool-v5.5.0-source.tar.gz": "3805fe89f13a88874c0fb4cb4ac1f22c5c55944c0541208bf1d5578dfd59f8d5"
+  }
+}

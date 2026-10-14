@@ -1,0 +1,32 @@
+name: Windows flasher validation
+on: [push, workflow_dispatch]
+permissions:
+  contents: read
+jobs:
+  windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.25.1'
+          cache: false
+      - name: Test firmware personalization
+        run: go test -v ./...
+      - name: Build standalone Windows x64 EXE
+        shell: pwsh
+        run: |
+          $env:CGO_ENABLED = '0'
+          $env:GOOS = 'windows'
+          $env:GOARCH = 'amd64'
+          go build -trimpath -ldflags='-H=windowsgui -s -w' -o dist/MARS-Rover-Flasher-x64.exe .
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Test bundled EXE and esptool without hardware
+        shell: pwsh
+        run: |
+          $p = Start-Process -FilePath .\dist\MARS-Rover-Flasher-x64.exe -ArgumentList '--self-test' -Wait -PassThru -RedirectStandardError self-test-errors.txt
+          if ($p.ExitCode -ne 0) { Get-Content self-test-errors.txt; throw "EXE self-test failed: $($p.ExitCode)" }
+      - uses: actions/upload-artifact@v4
+        with:
+          name: MARS-Rover-Flasher-Windows-x64
+          path: dist/MARS-Rover-Flasher-x64.exe

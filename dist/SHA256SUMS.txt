@@ -1,0 +1,2 @@
+83df6b11acbc25942c020dde657c0218df8812e922677e145a205f4ef9389117  MARS-Rover-Flasher-x64.exe
+ff9e66dc33e27ce641f08db0ee57e386dda35a3dce641f0218d181ba82375eeb  MARS-Rover-Flasher-source.zip

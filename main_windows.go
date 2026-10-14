@@ -48,9 +48,6 @@ func textOf(h uintptr) string {
 	return syscall.UTF16ToString(b)
 }
 func label(h uintptr, s string) { setText.Call(h, ptr(s)) }
-func message(s string) {
-	user.NewProc("MessageBoxW").Call(hwnd, ptr(s), ptr("MARS Rover Flasher"), 0x30)
-}
 func appendLog(s string) {
 	logMu.Lock()
 	defer logMu.Unlock()
@@ -147,19 +144,15 @@ func startFlash() {
 	}
 	n, e := getNumber()
 	if e != nil {
-		message(e.Error())
+		label(status, e.Error())
 		return
 	}
 	port := selectedPort()
 	if port == "" {
-		message("Select a COM port. Connect the ESP32 and click Refresh.")
+		label(status, "Select a COM port. Connect the ESP32 and click Refresh.")
 		return
 	}
 	name, _ := hotspot(n)
-	r, _, _ := user.NewProc("MessageBoxW").Call(hwnd, ptr("Flash "+name+" to "+port+"?\nThis replaces the ESP32 application and partition table. Existing settings are not erased."), ptr("Confirm ESP32 flash"), 0x24)
-	if r != 6 {
-		return
-	}
 	busy = true
 	for _, h := range []uintptr{flash, refresh, ports, number} {
 		enable.Call(h, 0)
@@ -316,7 +309,7 @@ func wndProc(h uintptr, m uint32, w, l uintptr) uintptr {
 		return 0
 	case 0x10:
 		if busy {
-			message("Flashing is in progress. Wait for completion before closing.")
+			label(status, "Flashing is in progress. Wait for completion before closing.")
 			return 0
 		}
 		user.NewProc("DestroyWindow").Call(h)

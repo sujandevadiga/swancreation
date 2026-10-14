@@ -17,7 +17,7 @@ The EXE is unsigned. Use the hashes in `dist/SHA256SUMS.txt` to check your downl
 2. Open `MARS-Rover-Flasher-x64.exe`.
 3. Enter a whole **Rover number** from **0 to 100**. The hotspot preview updates immediately, for example `7` → `MARS ROVER-007`.
 4. Select the board's **USB / COM port**. Entries include Windows device details, for example `COM7 — Silicon Labs CP210x USB to UART Bridge` or a CH340/FTDI driver name. With multiple ports, choose the correct board explicitly. Click **Refresh** if needed; connection changes also trigger a refresh.
-5. Click the single **Flash** button, check the port and hotspot name in the confirmation, and confirm.
+5. Check the selected port and hotspot preview, then click **Flash**. Upload starts immediately without a dialog box; progress, errors and completion appear in the same window.
 6. Wait for **SUCCESS**. The log includes esptool's write verification. Do not unplug the board during flashing.
 7. Connect to its Wi-Fi hotspot using password **12345678**, then open **http://192.168.4.1** to use the existing rover controls.
 

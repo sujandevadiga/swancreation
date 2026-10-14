@@ -58,7 +58,7 @@ Install Go **1.25.1** (or a compatible newer Go toolchain). There are no third-p
 **Linux/macOS:**
 
 ```sh
-./scripts/build.sh
+bash scripts/build.sh
 ```
 
 **Windows PowerShell:**
@@ -68,7 +68,7 @@ go test -v ./...
 $env:GOOS = 'windows'
 $env:GOARCH = 'amd64'
 $env:CGO_ENABLED = '0'
-go build -trimpath -ldflags='-H=windowsgui -s -w' -o dist/MARS-Rover-Flasher-x64.exe .
+go build -buildvcs=false -trimpath -ldflags='-H=windowsgui -s -w' -o dist/MARS-Rover-Flasher-x64.exe .
 $p = Start-Process -FilePath .\dist\MARS-Rover-Flasher-x64.exe -ArgumentList '--self-test' -Wait -PassThru
 $p.ExitCode # 0 means all numbers personalize and bundled esptool starts
 ```

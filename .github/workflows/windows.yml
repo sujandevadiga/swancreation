@@ -19,7 +19,7 @@ jobs:
           $env:CGO_ENABLED = '0'
           $env:GOOS = 'windows'
           $env:GOARCH = 'amd64'
-          go build -trimpath -ldflags='-H=windowsgui -s -w' -o dist/MARS-Rover-Flasher-x64.exe .
+          go build -buildvcs=false -trimpath -ldflags='-H=windowsgui -s -w' -o dist/MARS-Rover-Flasher-x64.exe .
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - name: Test bundled EXE and esptool without hardware
         shell: pwsh

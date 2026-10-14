@@ -15,3 +15,5 @@ Not executed in the Linux build environment:
 - USB/COM-port communication, physical flashing, hotspot connection, or motor/display behavior on a real rover.
 
 The Windows GitHub Actions workflow runs the tests and the EXE's `--self-test` (including bundled esptool `version`). Its result is separate from the checks above. Neither that self-test nor cross-compilation validates physical rover hardware.
+
+GitHub Windows workflow run 38569737764 passed the native Windows build, all firmware tests, and bundled EXE/esptool self-test. Physical hardware checks remain unrun.

@@ -1,2 +1,3 @@
 *.log
 self-test-errors.txt
+ui-test-errors.txt

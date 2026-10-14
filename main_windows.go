@@ -10,7 +10,6 @@ import (
 	"os/exec"
 	"path/filepath"
 	"runtime"
-	"sort"
 	"strconv"
 	"strings"
 	"sync"
@@ -24,20 +23,23 @@ var user = syscall.NewLazyDLL("user32.dll")
 var kernel = syscall.NewLazyDLL("kernel32.dll")
 var create = user.NewProc("CreateWindowExW")
 var send = user.NewProc("SendMessageW")
-var show = user.NewProc("ShowWindow")
 var setText = user.NewProc("SetWindowTextW")
 var enable = user.NewProc("EnableWindow")
-var hwnd, tab, ports, number, preview, logbox, flash, refresh, apply uintptr
-var flashPage, numberPage []uintptr
+var hwnd, ports, number, preview, logbox, flash, refresh, status, progress, deviceDetails, heading uintptr
+var bodyFont, titleFont, previewFont, background, logBackground uintptr
+var availablePorts []serialPort
+var lastFlashError error
 var busy bool
 var logMu sync.Mutex
 var logText string
-var selectedNumber int
 
 func wide(s string) *uint16 { p, _ := syscall.UTF16PtrFromString(s); return p }
 func ptr(s string) uintptr  { return uintptr(unsafe.Pointer(wide(s))) }
 func control(class, title string, style uint32, x, y, w, h int, id int) uintptr {
 	r, _, _ := create.Call(0, ptr(class), ptr(title), uintptr(style|0x50000000), uintptr(x), uintptr(y), uintptr(w), uintptr(h), hwnd, uintptr(id), 0, 0)
+	if bodyFont != 0 {
+		send.Call(r, 0x30, bodyFont, 1)
+	}
 	return r
 }
 func textOf(h uintptr) string {
@@ -62,46 +64,72 @@ func appendLog(s string) {
 type logger struct{}
 
 func (logger) Write(p []byte) (int, error) { appendLog(string(p)); return len(p), nil }
-func scanPorts() {
-	old := textOf(ports)
-	send.Call(ports, 0x14b, 0, 0)
-	buffer := make([]uint16, 65536)
-	r, _, _ := kernel.NewProc("QueryDosDeviceW").Call(0, uintptr(unsafe.Pointer(&buffer[0])), uintptr(len(buffer)))
-	if r == 0 {
-		message("Could not enumerate COM ports. Reconnect the USB cable and refresh.")
+func selectedPort() string {
+	index, _, _ := send.Call(ports, 0x147, 0, 0)
+	if index >= uintptr(len(availablePorts)) {
+		return ""
+	}
+	return availablePorts[index].Name
+}
+func refreshState() {
+	n, err := getNumber()
+	if err != nil {
+		label(preview, "Enter a whole number from 0 to 100")
+	} else {
+		name, _ := hotspot(n)
+		label(preview, name)
+	}
+	enabled := uintptr(0)
+	if !busy && err == nil && selectedPort() != "" {
+		enabled = 1
+	}
+	enable.Call(flash, enabled)
+	if busy {
 		return
 	}
-	var names []string
-	// QueryDosDevice returns a MULTI_SZ rather than a single terminated string.
-	start := 0
-	for i, v := range buffer[:r] {
-		if v == 0 {
-			if i == start {
-				break
-			}
-			s := syscall.UTF16ToString(buffer[start:i])
-			start = i + 1
-			if strings.HasPrefix(s, "COM") {
-				if n, e := strconv.Atoi(strings.TrimPrefix(s, "COM")); e == nil && n > 0 {
-					names = append(names, s)
-				}
-			}
+	if selectedPort() == "" {
+		label(status, "Connect your ESP32 by USB, then select its COM port.")
+	} else if err != nil {
+		label(status, "Enter a rover number from 0 to 100.")
+	} else {
+		label(status, "Ready. Click Flash to upload the selected rover number.")
+	}
+	index, _, _ := send.Call(ports, 0x147, 0, 0)
+	if index < uintptr(len(availablePorts)) {
+		description := availablePorts[index].Description
+		if description == "" {
+			description = "Windows has not provided a device description."
+		}
+		label(deviceDetails, description)
+	} else {
+		label(deviceDetails, "Device details appear here after you select a port.")
+	}
+}
+func scanPorts() {
+	if busy {
+		return
+	}
+	old := selectedPort()
+	found, err := listSerialPorts()
+	send.Call(ports, 0x14b, 0, 0)
+	availablePorts = found
+	selected := -1
+	for i, p := range found {
+		send.Call(ports, 0x143, 0, ptr(p.Label()))
+		if p.Name == old {
+			selected = i
 		}
 	}
-	sort.Slice(names, func(i, j int) bool {
-		a, _ := strconv.Atoi(names[i][3:])
-		b, _ := strconv.Atoi(names[j][3:])
-		return a < b
-	})
-	index := 0
-	for i, s := range names {
-		send.Call(ports, 0x143, 0, ptr(s))
-		if s == old {
-			index = i
-		}
+	// With multiple devices, require an explicit choice instead of silently
+	// selecting an unrelated serial port such as Intel AMT.
+	if selected < 0 && len(found) == 1 {
+		selected = 0
 	}
-	if len(names) > 0 {
-		send.Call(ports, 0x14e, uintptr(index), 0)
+	send.Call(ports, 0x14e, uintptr(selected), 0)
+	refreshState()
+	if err != nil {
+		label(status, "Unable to read COM ports. Reconnect the board and click Refresh.")
+		appendLog(err.Error() + "\r\n")
 	}
 }
 func getNumber() (int, error) {
@@ -113,23 +141,6 @@ func getNumber() (int, error) {
 	_, e = hotspot(n)
 	return n, e
 }
-func switchPage() {
-	i, _, _ := send.Call(tab, 0x130b, 0, 0)
-	for _, h := range flashPage {
-		v := uintptr(5)
-		if i != 0 {
-			v = 0
-		}
-		show.Call(h, v)
-	}
-	for _, h := range numberPage {
-		v := uintptr(5)
-		if i != 1 {
-			v = 0
-		}
-		show.Call(h, v)
-	}
-}
 func startFlash() {
 	if busy {
 		return
@@ -139,7 +150,7 @@ func startFlash() {
 		message(e.Error())
 		return
 	}
-	port := textOf(ports)
+	port := selectedPort()
 	if port == "" {
 		message("Select a COM port. Connect the ESP32 and click Refresh.")
 		return
@@ -150,16 +161,20 @@ func startFlash() {
 		return
 	}
 	busy = true
-	selectedNumber = n
-	for _, h := range []uintptr{flash, refresh, ports, number, apply} {
+	for _, h := range []uintptr{flash, refresh, ports, number} {
 		enable.Call(h, 0)
 	}
 	logMu.Lock()
 	logText = ""
 	logMu.Unlock()
+	label(status, "Flashing "+name+" on "+port+"… Keep the ESP32 connected.")
+	setProgressBusy(true)
 	appendLog("Preparing " + name + " on " + port + "...\r\n")
 	go func() {
 		e := runFlash(port, n)
+		logMu.Lock()
+		lastFlashError = e
+		logMu.Unlock()
 		if e != nil {
 			appendLog("\r\nFAILED: " + e.Error() + "\r\nHold BOOT while connecting if necessary, check drivers/cable, then retry.\r\n")
 		} else {
@@ -219,16 +234,6 @@ type msg struct {
 	X, Y           int32
 	Private        uint32
 }
-type notify struct {
-	From, ID uintptr
-	Code     int32
-}
-type tabItem struct {
-	Mask, State, StateMask uint32
-	Text                   *uint16
-	TextMax, Image         int32
-	Param                  uintptr
-}
 
 func wndProc(h uintptr, m uint32, w, l uintptr) uintptr {
 	switch m {
@@ -238,33 +243,49 @@ func wndProc(h uintptr, m uint32, w, l uintptr) uintptr {
 			scanPorts()
 		case 11:
 			startFlash()
-		case 12:
-			n, e := getNumber()
-			if e != nil {
-				message(e.Error())
-			} else {
-				selectedNumber = n
-				send.Call(tab, 0x130c, 0, 0)
-				switchPage()
+		case 2:
+			if w>>16 == 1 {
+				refreshState()
 			}
 		case 20:
 			if w>>16 == 0x300 {
-				n, e := getNumber()
-				if e != nil {
-					label(preview, "Enter a whole number from 0 to 100")
-				} else {
-					name, _ := hotspot(n)
-					label(preview, "Hotspot: "+name)
-				}
+				refreshState()
 			}
 		}
 		return 0
-	case 0x4e:
-		// The tab is the only common control with ID 1. Query its current
-		// selection for notifications without dereferencing OS-owned memory.
-		if w == 1 {
-			switchPage()
+	case 0x219: // Device arrival/removal: debounce Windows' notification burst.
+		if !busy {
+			user.NewProc("SetTimer").Call(h, 1, 500, 0)
 		}
+		return 0
+	case 0x113:
+		if w == 1 {
+			user.NewProc("KillTimer").Call(h, 1)
+			scanPorts()
+		}
+		return 0
+	case 0x138: // WM_CTLCOLORSTATIC: soft background and emphasis colors.
+		if l == logbox {
+			gdi.NewProc("SetBkColor").Call(w, 0x00372718)
+			gdi.NewProc("SetTextColor").Call(w, 0x00f6f2ed)
+			return logBackground
+		}
+		gdi.NewProc("SetBkColor").Call(w, 0x00f6f2ed)
+		color := uintptr(0x00513b20)
+		if l == preview {
+			color = 0x007e7d00
+		}
+		if l == deviceDetails {
+			color = 0x00796858
+		}
+		gdi.NewProc("SetTextColor").Call(w, color)
+		return background
+	case 0x8003:
+		if err := uiSelfTest(); err != nil {
+			fmt.Fprintln(os.Stderr, err)
+			os.Exit(1)
+		}
+		user.NewProc("DestroyWindow").Call(h)
 		return 0
 	case 0x8001:
 		logMu.Lock()
@@ -277,8 +298,20 @@ func wndProc(h uintptr, m uint32, w, l uintptr) uintptr {
 		return 0
 	case 0x8002:
 		busy = false
-		for _, c := range []uintptr{flash, refresh, ports, number, apply} {
+		setProgressBusy(false)
+		for _, c := range []uintptr{refresh, ports, number} {
 			enable.Call(c, 1)
+		}
+		refreshState()
+		logMu.Lock()
+		err := lastFlashError
+		logMu.Unlock()
+		if err == nil {
+			send.Call(progress, 0x402, 100, 0)
+			label(status, "Finished. Firmware verified — connect to your rover’s Wi-Fi.")
+		} else {
+			send.Call(progress, 0x402, 0, 0)
+			label(status, "Flash failed. Check the log, USB cable and BOOT button, then retry.")
 		}
 		return 0
 	case 0x10:
@@ -329,6 +362,72 @@ func selfTest() error {
 	}
 	return nil
 }
+
+var gdi = syscall.NewLazyDLL("gdi32.dll")
+
+func font(height, weight int) uintptr {
+	h, _, _ := gdi.NewProc("CreateFontW").Call(uintptr(-height), 0, 0, 0, uintptr(weight), 0, 0, 0, 1, 0, 0, 5, 0, ptr("Segoe UI"))
+	return h
+}
+func setProgressBusy(active bool) {
+	style, _, _ := user.NewProc("GetWindowLongW").Call(progress, uintptr(0xfffffff0))
+	if active {
+		style |= 8
+	} else {
+		style &^= 8
+	}
+	user.NewProc("SetWindowLongW").Call(progress, uintptr(0xfffffff0), style)
+	v := uintptr(0)
+	if active {
+		v = 1
+		send.Call(progress, 0x402, 0, 0)
+	}
+	send.Call(progress, 0x40a, v, 35)
+}
+
+// Exercise real Win32 controls and selection mapping without touching hardware.
+// The simulated entry exists only for this test and is never shown in normal use.
+func uiSelfTest() error {
+	for _, h := range []uintptr{ports, number, preview, logbox, flash, refresh, status, progress, deviceDetails, heading} {
+		ok, _, _ := user.NewProc("IsWindow").Call(h)
+		if ok == 0 {
+			return fmt.Errorf("a UI control failed to initialize")
+		}
+	}
+	for _, n := range []int{0, 7, 26, 100} {
+		label(number, strconv.Itoa(n))
+		expected, _ := hotspot(n)
+		if textOf(preview) != expected {
+			return fmt.Errorf("hotspot preview mismatch for %d: %s", n, textOf(preview))
+		}
+	}
+	availablePorts = []serialPort{{Name: "COM7", Description: "Silicon Labs CP210x USB to UART Bridge (UI test device)"}}
+	send.Call(ports, 0x14b, 0, 0)
+	send.Call(ports, 0x143, 0, ptr(availablePorts[0].Label()))
+	send.Call(ports, 0x14e, 0, 0)
+	refreshState()
+	if selectedPort() != "COM7" || !strings.Contains(textOf(ports), "Silicon Labs CP210x") {
+		return fmt.Errorf("COM-port description or selection mapping failed")
+	}
+	for _, invalid := range []string{"", "101", "-1", "abc"} {
+		label(number, invalid)
+		if _, err := getNumber(); err == nil {
+			return fmt.Errorf("invalid rover input accepted: %q", invalid)
+		}
+		enabled, _, _ := user.NewProc("IsWindowEnabled").Call(flash)
+		if enabled != 0 {
+			return fmt.Errorf("Flash enabled for invalid number %q", invalid)
+		}
+	}
+	label(number, "7")
+	enabled, _, _ := user.NewProc("IsWindowEnabled").Call(flash)
+	if enabled == 0 || textOf(preview) != "MARS ROVER-007" {
+		return fmt.Errorf("Flash not enabled for valid selection")
+	}
+	setProgressBusy(true)
+	setProgressBusy(false)
+	return nil
+}
 func main() {
 	if len(os.Args) > 1 && os.Args[1] == "--self-test" {
 		if err := selfTest(); err != nil {
@@ -338,44 +437,63 @@ func main() {
 		os.Exit(0)
 	}
 	runtime.LockOSThread()
+	releaseStyles := activateVisualStyles()
+	defer releaseStyles()
 	syscall.NewLazyDLL("comctl32.dll").NewProc("InitCommonControls").Call()
 	instance, _, _ := kernel.NewProc("GetModuleHandleW").Call(0)
 	cursor, _, _ := user.NewProc("LoadCursorW").Call(0, 32512)
-	wc := wndClass{Proc: syscall.NewCallback(wndProc), Instance: instance, Cursor: cursor, Background: 6, Name: wide("MARSFlasher")}
+	background, _, _ = gdi.NewProc("CreateSolidBrush").Call(0x00f6f2ed)
+	logBackground, _, _ = gdi.NewProc("CreateSolidBrush").Call(0x00372718)
+	bodyFont = font(17, 400)
+	titleFont = font(30, 700)
+	previewFont = font(22, 700)
+	wc := wndClass{Proc: syscall.NewCallback(wndProc), Instance: instance, Cursor: cursor, Background: background, Name: wide("MARSFlasher")}
 	wc.Size = uint32(unsafe.Sizeof(wc))
 	user.NewProc("RegisterClassExW").Call(uintptr(unsafe.Pointer(&wc)))
-	hwnd, _, _ = create.Call(0, ptr("MARSFlasher"), ptr("MARS Rover ESP32 Flasher — Windows 64-bit"), 0x10ca0000, 100, 100, 740, 565, 0, 0, instance, 0)
+	hwnd, _, _ = create.Call(0, ptr("MARSFlasher"), ptr("MARS Rover Flasher"), 0x10ca0000, 100, 70, 790, 740, 0, 0, instance, 0)
 	if hwnd == 0 {
-		return
+		os.Exit(1)
 	}
-	tab = control("SysTabControl32", "", 0, 12, 12, 700, 490, 1)
-	for i, title := range []string{"Flash ESP32", "Rover number"} {
-		item := tabItem{Mask: 1, Text: wide(title)}
-		send.Call(tab, 0x133e, uintptr(i), uintptr(unsafe.Pointer(&item)))
-	}
-	addF := func(h uintptr) uintptr { flashPage = append(flashPage, h); return h }
-	addN := func(h uintptr) uintptr { numberPage = append(numberPage, h); return h }
-	addF(control("STATIC", "ESP32 Dev Module • 4 MB flash • supplied rover firmware", 0, 30, 52, 650, 24, 0))
-	addF(control("STATIC", "COM port:", 0, 30, 88, 80, 24, 0))
-	ports = addF(control("COMBOBOX", "", 0x00200003, 115, 84, 190, 220, 2))
-	refresh = addF(control("BUTTON", "Refresh", 0, 320, 84, 100, 28, 10))
-	flash = addF(control("BUTTON", "Flash rover", 1, 440, 84, 150, 30, 11))
-	addF(control("STATIC", "Set the rover number in the Rover number tab before flashing.", 0, 30, 125, 650, 24, 0))
-	logbox = addF(control("EDIT", "Connect the ESP32 by USB, select its COM port, set its rover number, then flash.", 0x002008c4, 30, 155, 660, 325, 3))
-	addN(control("STATIC", "Rover number (0–100):", 0, 35, 65, 230, 25, 0))
-	number = addN(control("EDIT", "0", 0x00800000, 270, 60, 100, 30, 20))
+	heading = control("STATIC", "MARS Rover Flasher", 0, 28, 24, 710, 44, 100)
+	send.Call(heading, 0x30, titleFont, 1)
+	control("STATIC", "Connect your ESP32, choose its rover number, and flash.", 0, 30, 78, 710, 26, 101)
+	control("STATIC", "USB / COM port", 0, 30, 126, 710, 24, 102)
+	ports = control("COMBOBOX", "", 0x00210003, 30, 157, 590, 260, 2)
+	refresh = control("BUTTON", "Refresh", 0x10000, 635, 153, 110, 34, 10)
+	send.Call(ports, 0x1703, 0, ptr("Select your ESP32 COM port"))
+	send.Call(ports, 0x160, 710, 0) // Wide dropdown for full driver descriptions.
+	deviceDetails = control("STATIC", "", 0, 30, 199, 710, 26, 103)
+	control("STATIC", "Rover number (0–100)", 0, 30, 244, 710, 25, 104)
+	number = control("EDIT", "0", 0x00812080, 30, 276, 715, 34, 20)
 	send.Call(number, 0xc5, 3, 0)
-	preview = addN(control("STATIC", "Hotspot: MARS ROVER-000", 0, 35, 110, 600, 28, 0))
-	addN(control("STATIC", "000 → MARS ROVER-000     7 → MARS ROVER-007     100 → MARS ROVER-100", 0, 35, 155, 650, 45, 0))
-	addN(control("STATIC", "The number is applied when you flash. Changing this field alone does not update a connected rover.", 0, 35, 210, 630, 55, 0))
-	apply = addN(control("BUTTON", "Use number and return to flashing", 0, 35, 285, 330, 35, 12))
-	switchPage()
+	preview = control("STATIC", "MARS ROVER-000", 0, 30, 328, 710, 33, 105)
+	send.Call(preview, 0x30, previewFont, 1)
+	control("STATIC", "Wi-Fi password: 12345678   •   Rover controls: 192.168.4.1", 0, 30, 370, 715, 25, 106)
+	flash = control("BUTTON", "Flash", 0x10001, 30, 413, 180, 42, 11)
+	status = control("STATIC", "", 0, 30, 477, 715, 27, 107)
+	progress = control("msctls_progress32", "", 0, 30, 512, 715, 14, 108)
+	send.Call(progress, 0x406, 0, 100)
+	logbox = control("EDIT", "Flash activity will appear here.", 0x002008c4, 30, 542, 715, 137, 109)
+	// Apply modern Windows visual styles where available, without extra DLLs.
+	theme := syscall.NewLazyDLL("uxtheme.dll").NewProc("SetWindowTheme")
+	for _, h := range []uintptr{ports, number, flash, refresh, progress} {
+		theme.Call(h, ptr("Explorer"), 0)
+	}
 	scanPorts()
+	user.NewProc("SetFocus").Call(number)
+	send.Call(number, 0xb1, 0, ^uintptr(0))
+	if len(os.Args) > 1 && os.Args[1] == "--ui-self-test" {
+		user.NewProc("PostMessageW").Call(hwnd, 0x8003, 0, 0)
+	}
 	var m msg
 	for {
 		r, _, _ := user.NewProc("GetMessageW").Call(uintptr(unsafe.Pointer(&m)), 0, 0, 0)
 		if int32(r) <= 0 {
 			break
+		}
+		handled, _, _ := user.NewProc("IsDialogMessageW").Call(hwnd, uintptr(unsafe.Pointer(&m)))
+		if handled != 0 {
+			continue
 		}
 		user.NewProc("TranslateMessage").Call(uintptr(unsafe.Pointer(&m)))
 		user.NewProc("DispatchMessageW").Call(uintptr(unsafe.Pointer(&m)))

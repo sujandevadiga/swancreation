@@ -26,6 +26,11 @@ jobs:
         run: |
           $p = Start-Process -FilePath .\dist\MARS-Rover-Flasher-x64.exe -ArgumentList '--self-test' -Wait -PassThru -RedirectStandardError self-test-errors.txt
           if ($p.ExitCode -ne 0) { Get-Content self-test-errors.txt; throw "EXE self-test failed: $($p.ExitCode)" }
+      - name: Test single-screen Windows UI
+        shell: pwsh
+        run: |
+          $p = Start-Process -FilePath .\dist\MARS-Rover-Flasher-x64.exe -ArgumentList '--ui-self-test' -Wait -PassThru -RedirectStandardError ui-test-errors.txt
+          if ($p.ExitCode -ne 0) { Get-Content ui-test-errors.txt; throw "UI self-test failed: $($p.ExitCode)" }
       - uses: actions/upload-artifact@v4
         with:
           name: MARS-Rover-Flasher-Windows-x64

@@ -17,3 +17,7 @@ Not executed in the Linux build environment:
 The Windows GitHub Actions workflow runs the tests and the EXE's `--self-test` (including bundled esptool `version`). Its result is separate from the checks above. Neither that self-test nor cross-compilation validates physical rover hardware.
 
 GitHub Windows workflow run 38569737764 passed the native Windows build, all firmware tests, and bundled EXE/esptool self-test. Physical hardware checks remain unrun.
+
+## Single-screen interface update
+
+The Windows workflow includes a native GUI self-test for control creation, live hotspot previews, invalid-number rejection, Flash enablement, and mapping a simulated `COM7 — Silicon Labs CP210x USB to UART Bridge` entry back to `COM7`. Device descriptions in normal operation are queried from Windows SetupAPI/Device Manager registry properties. Real CP210x/CH340/FTDI hardware and USB flashing still require physical validation.

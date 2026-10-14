@@ -1,6 +1,6 @@
 # MARS Rover ESP32 Flasher
 
-Standalone **Windows 10/11, 64-bit** desktop flasher for the supplied MARS rover firmware. No Python, Arduino IDE, Go, or .NET installation is required to run the EXE. Espressif's standalone esptool 5.5.0 is bundled inside it and extracted to a temporary directory while flashing.
+Single-screen **Windows 10/11, 64-bit** desktop flasher for the supplied MARS rover firmware. No Python, Arduino IDE, Go, or .NET installation is required to run the EXE. Espressif's standalone esptool 5.5.0 is bundled inside it and extracted to a temporary directory while flashing.
 
 ## Downloads
 
@@ -15,9 +15,9 @@ The EXE is unsigned. Use the hashes in `dist/SHA256SUMS.txt` to check your downl
 
 1. Connect the ESP32 using a USB data cable. Close Arduino Serial Monitor and other applications using its port.
 2. Open `MARS-Rover-Flasher-x64.exe`.
-3. Open the **Rover number** tab. Enter a whole number from **0 to 100**, then click **Use number and return to flashing**.
-4. Select the board's **COM port**. Click **Refresh** after reconnecting a board.
-5. Click **Flash rover**, check the port and hotspot name in the confirmation, and confirm.
+3. Enter a whole **Rover number** from **0 to 100**. The hotspot preview updates immediately, for example `7` → `MARS ROVER-007`.
+4. Select the board's **USB / COM port**. Entries include Windows device details, for example `COM7 — Silicon Labs CP210x USB to UART Bridge` or a CH340/FTDI driver name. With multiple ports, choose the correct board explicitly. Click **Refresh** if needed; connection changes also trigger a refresh.
+5. Click the single **Flash** button, check the port and hotspot name in the confirmation, and confirm.
 6. Wait for **SUCCESS**. The log includes esptool's write verification. Do not unplug the board during flashing.
 7. Connect to its Wi-Fi hotspot using password **12345678**, then open **http://192.168.4.1** to use the existing rover controls.
 
@@ -27,6 +27,8 @@ The EXE is unsigned. Use the hashes in `dist/SHA256SUMS.txt` to check your downl
 | 7 | `MARS ROVER-007` |
 | 26 | `MARS ROVER-026` |
 | 100 | `MARS ROVER-100` |
+
+The port selector, rover-number field, live hotspot name, Wi-Fi password, single Flash button, status/progress indicator, and activity log are all on one screen. Device details come from the installed Windows driver; if Windows supplies no description, the COM port is still listed with “Device details unavailable.” Flash is disabled until a port and a valid number are selected.
 
 The number defaults to 0 each time the app starts. Changing the field alone does not change an already-flashed rover; flash it again to apply a different number. The current rover number is built into the flashed firmware and survives a board reset.
 
@@ -79,13 +81,13 @@ To modify the Arduino firmware, open `firmware/mars_rover_goodera_ESP/mars_rover
 
 ## Validation and limitations
 
-`go test -v ./...` exercises all 101 rover numbers, their embedded names and SHA-256 digests, preserves bytes outside the intended changes, and checks rejection of invalid numbers and corrupted/truncated images. The Windows workflow additionally builds the EXE and runs `--self-test`, which starts bundled esptool without needing an ESP32.
+`go test -v ./...` exercises all 101 rover numbers, their embedded names and SHA-256 digests, preserves bytes outside the intended changes, and checks rejection of invalid numbers and corrupted/truncated images. The Windows workflow additionally builds the EXE and runs `--self-test`, which starts bundled esptool without needing an ESP32. It also runs `--ui-self-test` against real Windows controls: number/preview updates, out-of-range and invalid inputs, Flash enable/disable behavior, and a simulated CP210x port entry whose friendly description must map to the raw COM name. The simulated entry is used only by the test; normal operation lists actual Windows ports.
 
-The initial EXE was cross-compiled on Linux. Windows GUI operation, USB communication and actual hardware flashing have not been tested in that environment. Check the linked Windows workflow for its separate result; a successful build or self-test does not establish physical rover behavior.
+The initial EXE was cross-compiled on Linux. Windows GUI interaction with physical USB devices and actual hardware flashing cannot be tested in that environment. Check the linked Windows workflow for its separate result; a successful build or self-test does not establish physical rover behavior.
 
 ## Source and third-party notices
 
-- Flasher source: `main_windows.go`, `firmware.go`, tests, and build scripts.
+- Flasher source: `main_windows.go`, `ports_windows.go`, `theme_windows.go`, `firmware.go`, tests, and build scripts.
 - Original rover source: `firmware/mars_rover_goodera_ESP/`.
 - esptool 5.5.0: official [Windows release](https://github.com/espressif/esptool/releases/tag/v5.5.0), [corresponding source](https://github.com/espressif/esptool/tree/v5.5.0), the bundled source archive `third_party/esptool-v5.5.0-source.tar.gz`, and `assets/ESPTOOL-LICENSE.txt` / `assets/ESPTOOL-README.md`. Its standalone distribution includes its own Python runtime; users do not install Python separately.
 - Asset origin and SHA-256 fingerprints: `ASSETS.json`.

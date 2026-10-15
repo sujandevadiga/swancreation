@@ -18,7 +18,7 @@ The EXE is unsigned. Use the hashes in `dist/SHA256SUMS.txt` to check your downl
 3. Enter a whole **Rover number** from **0 to 100**. The hotspot preview updates immediately, for example `7` → `MARS ROVER-007`.
 4. Select the board's **USB / COM port**. Entries include Windows device details, for example `COM7 — Silicon Labs CP210x USB to UART Bridge` or a CH340/FTDI driver name. With multiple ports, choose the correct board explicitly. Click **Refresh** if needed; connection changes also trigger a refresh.
 5. Check the selected port and hotspot preview, then click **Flash**. Upload starts immediately without a dialog box; progress, errors and completion appear in the same window.
-6. Wait for **SUCCESS**. The log includes esptool's write verification. Do not unplug the board during flashing.
+6. Watch the upload percentage increase from **0% to 100%** and wait for **SUCCESS**. The bar uses esptool's acknowledged write addresses across all four images, without restarting for each image. It stays below 100% until esptool completes verification and exits successfully. The log includes connection, writing, verification and reset output; a failed upload retains its last reported percentage. Do not unplug the board during flashing.
 7. Connect to its Wi-Fi hotspot using password **12345678**, then open **http://192.168.4.1** to use the existing rover controls.
 
 | Rover number | Hotspot |
@@ -28,7 +28,7 @@ The EXE is unsigned. Use the hashes in `dist/SHA256SUMS.txt` to check your downl
 | 26 | `MARS ROVER-026` |
 | 100 | `MARS ROVER-100` |
 
-The port selector, rover-number field, live hotspot name, Wi-Fi password, single Flash button, status/progress indicator, and activity log are all on one screen. Device details come from the installed Windows driver; if Windows supplies no description, the COM port is still listed with “Device details unavailable.” Flash is disabled until a port and a valid number are selected.
+The port selector, rover-number field, live hotspot name, Wi-Fi password, single Flash button, 0–100% upload bar, percentage label, and IDE-style monospaced activity log are all on one screen. Device details come from the installed Windows driver; if Windows supplies no description, the COM port is still listed with “Device details unavailable.” Flash is disabled until a port and a valid number are selected.
 
 The number defaults to 0 each time the app starts. Changing the field alone does not change an already-flashed rover; flash it again to apply a different number. The current rover number is built into the flashed firmware and survives a board reset.
 

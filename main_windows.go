@@ -5,7 +5,6 @@ package main
 import (
 	"embed"
 	"fmt"
-	"io"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -29,6 +28,8 @@ var hwnd, ports, number, preview, logbox, flash, refresh, status, progress, devi
 var bodyFont, titleFont, previewFont, background, logBackground uintptr
 var availablePorts []serialPort
 var lastFlashError error
+var progressLabel uintptr
+var uploadPercent int
 var busy bool
 var logMu sync.Mutex
 var logText string
@@ -58,9 +59,6 @@ func appendLog(s string) {
 	user.NewProc("PostMessageW").Call(hwnd, 0x8001, 0, 0)
 }
 
-type logger struct{}
-
-func (logger) Write(p []byte) (int, error) { appendLog(string(p)); return len(p), nil }
 func selectedPort() string {
 	index, _, _ := send.Call(ports, 0x147, 0, 0)
 	if index >= uintptr(len(availablePorts)) {
@@ -160,8 +158,10 @@ func startFlash() {
 	logMu.Lock()
 	logText = ""
 	logMu.Unlock()
-	label(status, "Flashing "+name+" on "+port+"… Keep the ESP32 connected.")
-	setProgressBusy(true)
+	label(status, "Connecting to "+port+"… Upload: 0%")
+	uploadPercent = 0
+	setUploadProgress(0)
+	send.Call(progress, 0x410, 1, 0)
 	appendLog("Preparing " + name + " on " + port + "...\r\n")
 	go func() {
 		e := runFlash(port, n)
@@ -206,9 +206,26 @@ func runFlash(port string, n int) error {
 	cmd := exec.Command(filepath.Join(dir, "esptool.exe"), args...)
 	cmd.Dir = dir
 	cmd.SysProcAttr = &syscall.SysProcAttr{HideWindow: true}
-	cmd.Stdout = io.Writer(logger{})
-	cmd.Stderr = io.Writer(logger{})
-	return cmd.Run()
+	sizes := []struct {
+		name    string
+		address int64
+	}{{"mars_rover_goodera_ESP.ino.bootloader.bin", 0x1000}, {"mars_rover_goodera_ESP.ino.partitions.bin", 0x8000}, {"boot_app0.bin", 0xe000}, {"application.bin", 0x10000}}
+	var images []uploadImage
+	for _, file := range sizes {
+		info, err := os.Stat(filepath.Join(dir, file.name))
+		if err != nil {
+			return err
+		}
+		images = append(images, uploadImage{Address: file.address, Size: info.Size()})
+	}
+	output := &uploadOutput{Images: images, Line: appendLog, Progress: func(percent, stage int) {
+		user.NewProc("PostMessageW").Call(hwnd, 0x8004, uintptr(percent), uintptr(stage))
+	}}
+	cmd.Stdout = output
+	cmd.Stderr = output
+	err := cmd.Run()
+	output.Flush()
+	return err
 }
 
 type wndClass struct {
@@ -289,9 +306,22 @@ func wndProc(h uintptr, m uint32, w, l uintptr) uintptr {
 		send.Call(logbox, 0xb1, ^uintptr(0), ^uintptr(0))
 		send.Call(logbox, 0xb7, 0, 0)
 		return 0
+	case 0x8004:
+		if busy {
+			setUploadProgress(int(w))
+			stage := int(l) + 1
+			if stage > 4 {
+				stage = 4
+			}
+			if uploadPercent == 99 {
+				label(status, "Upload: 99% — finishing write and verification…")
+			} else {
+				label(status, fmt.Sprintf("Uploading: %d%% — image %d of 4. Keep ESP32 connected.", uploadPercent, stage))
+			}
+		}
+		return 0
 	case 0x8002:
 		busy = false
-		setProgressBusy(false)
 		for _, c := range []uintptr{refresh, ports, number} {
 			enable.Call(c, 1)
 		}
@@ -300,11 +330,11 @@ func wndProc(h uintptr, m uint32, w, l uintptr) uintptr {
 		err := lastFlashError
 		logMu.Unlock()
 		if err == nil {
-			send.Call(progress, 0x402, 100, 0)
-			label(status, "Finished. Firmware verified — connect to your rover’s Wi-Fi.")
+			setUploadProgress(100)
+			label(status, "Upload: 100% — finished. Firmware verified; connect to rover Wi-Fi.")
 		} else {
-			send.Call(progress, 0x402, 0, 0)
-			label(status, "Flash failed. Check the log, USB cable and BOOT button, then retry.")
+			send.Call(progress, 0x410, 2, 0)
+			label(status, fmt.Sprintf("Upload failed at %d%%. See the log; check USB cable and BOOT button.", uploadPercent))
 		}
 		return 0
 	case 0x10:
@@ -362,20 +392,16 @@ func font(height, weight int) uintptr {
 	h, _, _ := gdi.NewProc("CreateFontW").Call(uintptr(-height), 0, 0, 0, uintptr(weight), 0, 0, 0, 1, 0, 0, 5, 0, ptr("Segoe UI"))
 	return h
 }
-func setProgressBusy(active bool) {
-	style, _, _ := user.NewProc("GetWindowLongW").Call(progress, uintptr(0xfffffff0))
-	if active {
-		style |= 8
-	} else {
-		style &^= 8
+func setUploadProgress(percent int) {
+	if percent < 0 {
+		percent = 0
 	}
-	user.NewProc("SetWindowLongW").Call(progress, uintptr(0xfffffff0), style)
-	v := uintptr(0)
-	if active {
-		v = 1
-		send.Call(progress, 0x402, 0, 0)
+	if percent > 100 {
+		percent = 100
 	}
-	send.Call(progress, 0x40a, v, 35)
+	uploadPercent = percent
+	send.Call(progress, 0x402, uintptr(percent), 0)
+	label(progressLabel, fmt.Sprintf("%d%%", percent))
 }
 
 // Exercise real Win32 controls and selection mapping without touching hardware.
@@ -417,8 +443,13 @@ func uiSelfTest() error {
 	if enabled == 0 || textOf(preview) != "MARS ROVER-007" {
 		return fmt.Errorf("Flash not enabled for valid selection")
 	}
-	setProgressBusy(true)
-	setProgressBusy(false)
+	for _, percent := range []int{0, 42, 99, 100} {
+		setUploadProgress(percent)
+		actual, _, _ := send.Call(progress, 0x408, 0, 0)
+		if int(actual) != percent || textOf(progressLabel) != fmt.Sprintf("%d%%", percent) {
+			return fmt.Errorf("progress UI mismatch for %d", percent)
+		}
+	}
 	return nil
 }
 func main() {
@@ -464,9 +495,12 @@ func main() {
 	control("STATIC", "Wi-Fi password: 12345678   •   Rover controls: 192.168.4.1", 0, 30, 370, 715, 25, 106)
 	flash = control("BUTTON", "Flash", 0x10001, 30, 413, 180, 42, 11)
 	status = control("STATIC", "", 0, 30, 477, 715, 27, 107)
-	progress = control("msctls_progress32", "", 0, 30, 512, 715, 14, 108)
+	progress = control("msctls_progress32", "", 0, 30, 512, 645, 14, 108)
+	progressLabel = control("STATIC", "0%", 2, 685, 505, 60, 26, 110)
 	send.Call(progress, 0x406, 0, 100)
 	logbox = control("EDIT", "Flash activity will appear here.", 0x002008c4, 30, 542, 715, 137, 109)
+	logFont, _, _ := gdi.NewProc("CreateFontW").Call(uintptr(0xffffffF0), 0, 0, 0, 400, 0, 0, 0, 1, 0, 0, 5, 0, ptr("Consolas"))
+	send.Call(logbox, 0x30, logFont, 1)
 	// Apply modern Windows visual styles where available, without extra DLLs.
 	theme := syscall.NewLazyDLL("uxtheme.dll").NewProc("SetWindowTheme")
 	for _, h := range []uintptr{ports, number, flash, refresh, progress} {

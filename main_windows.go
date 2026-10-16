@@ -177,7 +177,7 @@ func startFlash() {
 	}()
 }
 func runFlash(port string, n int) error {
-	original, e := assets.ReadFile("assets/mars_rover_goodera_ESP.ino.bin")
+	original, e := assets.ReadFile("assets/MarsRover.ino.bin")
 	if e != nil {
 		return e
 	}
@@ -190,7 +190,7 @@ func runFlash(port string, n int) error {
 		return e
 	}
 	defer os.RemoveAll(dir)
-	for _, name := range []string{"esptool.exe", "mars_rover_goodera_ESP.ino.bootloader.bin", "mars_rover_goodera_ESP.ino.partitions.bin", "boot_app0.bin"} {
+	for _, name := range []string{"esptool.exe", "MarsRover.ino.bootloader.bin", "MarsRover.ino.partitions.bin", "boot_app0.bin"} {
 		b, e := assets.ReadFile("assets/" + name)
 		if e != nil {
 			return e
@@ -202,14 +202,14 @@ func runFlash(port string, n int) error {
 	if e = os.WriteFile(filepath.Join(dir, "application.bin"), image, 0600); e != nil {
 		return e
 	}
-	args := []string{"--chip", "esp32", "--port", port, "--baud", "460800", "--before", "default-reset", "--after", "hard-reset", "write-flash", "--flash-mode", "dio", "--flash-freq", "80m", "--flash-size", "4MB", "0x1000", "mars_rover_goodera_ESP.ino.bootloader.bin", "0x8000", "mars_rover_goodera_ESP.ino.partitions.bin", "0xe000", "boot_app0.bin", "0x10000", "application.bin"}
+	args := []string{"--chip", "esp32", "--port", port, "--baud", "460800", "--before", "default-reset", "--after", "hard-reset", "write-flash", "--flash-mode", "dio", "--flash-freq", "80m", "--flash-size", "4MB", "0x1000", "MarsRover.ino.bootloader.bin", "0x8000", "MarsRover.ino.partitions.bin", "0xe000", "boot_app0.bin", "0x10000", "application.bin"}
 	cmd := exec.Command(filepath.Join(dir, "esptool.exe"), args...)
 	cmd.Dir = dir
 	cmd.SysProcAttr = &syscall.SysProcAttr{HideWindow: true}
 	sizes := []struct {
 		name    string
 		address int64
-	}{{"mars_rover_goodera_ESP.ino.bootloader.bin", 0x1000}, {"mars_rover_goodera_ESP.ino.partitions.bin", 0x8000}, {"boot_app0.bin", 0xe000}, {"application.bin", 0x10000}}
+	}{{"MarsRover.ino.bootloader.bin", 0x1000}, {"MarsRover.ino.partitions.bin", 0x8000}, {"boot_app0.bin", 0xe000}, {"application.bin", 0x10000}}
 	var images []uploadImage
 	for _, file := range sizes {
 		info, err := os.Stat(filepath.Join(dir, file.name))
@@ -352,7 +352,7 @@ func wndProc(h uintptr, m uint32, w, l uintptr) uintptr {
 	return r
 }
 func selfTest() error {
-	original, err := assets.ReadFile("assets/mars_rover_goodera_ESP.ino.bin")
+	original, err := assets.ReadFile("assets/MarsRover.ino.bin")
 	if err != nil {
 		return err
 	}
@@ -440,7 +440,7 @@ func uiSelfTest() error {
 	}
 	label(number, "7")
 	enabled, _, _ := user.NewProc("IsWindowEnabled").Call(flash)
-	if enabled == 0 || textOf(preview) != "MARS ROVER-007" {
+	if enabled == 0 || textOf(preview) != "MarsRover - 007" {
 		return fmt.Errorf("Flash not enabled for valid selection")
 	}
 	for _, percent := range []int{0, 42, 99, 100} {
@@ -490,7 +490,7 @@ func main() {
 	control("STATIC", "Rover number (0–100)", 0, 30, 244, 710, 25, 104)
 	number = control("EDIT", "0", 0x00812080, 30, 276, 715, 34, 20)
 	send.Call(number, 0xc5, 3, 0)
-	preview = control("STATIC", "MARS ROVER-000", 0, 30, 328, 710, 33, 105)
+	preview = control("STATIC", "MarsRover - 000", 0, 30, 328, 710, 33, 105)
 	send.Call(preview, 0x30, previewFont, 1)
 	control("STATIC", "Wi-Fi password: 12345678   •   Rover controls: 192.168.4.1", 0, 30, 370, 715, 25, 106)
 	flash = control("BUTTON", "Flash", 0x10001, 30, 413, 180, 42, 11)

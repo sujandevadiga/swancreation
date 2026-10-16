@@ -15,7 +15,7 @@ The EXE is unsigned. Use the hashes in `dist/SHA256SUMS.txt` to check your downl
 
 1. Connect the ESP32 using a USB data cable. Close Arduino Serial Monitor and other applications using its port.
 2. Open `MARS-Rover-Flasher-x64.exe`.
-3. Enter a whole **Rover number** from **0 to 100**. The hotspot preview updates immediately, for example `7` → `MARS ROVER-007`.
+3. Enter a whole **Rover number** from **0 to 100**. The hotspot preview updates immediately, for example `7` → `MarsRover - 007`.
 4. Select the board's **USB / COM port**. Entries include Windows device details, for example `COM7 — Silicon Labs CP210x USB to UART Bridge` or a CH340/FTDI driver name. With multiple ports, choose the correct board explicitly. Click **Refresh** if needed; connection changes also trigger a refresh.
 5. Check the selected port and hotspot preview, then click **Flash**. Upload starts immediately without a dialog box; progress, errors and completion appear in the same window.
 6. Watch the upload percentage increase from **0% to 100%** and wait for **SUCCESS**. The bar uses esptool's acknowledged write addresses across all four images, without restarting for each image. It stays below 100% until esptool completes verification and exits successfully. The log includes connection, writing, verification and reset output; a failed upload retains its last reported percentage. Do not unplug the board during flashing.
@@ -23,10 +23,10 @@ The EXE is unsigned. Use the hashes in `dist/SHA256SUMS.txt` to check your downl
 
 | Rover number | Hotspot |
 | --- | --- |
-| 0 | `MARS ROVER-000` |
-| 7 | `MARS ROVER-007` |
-| 26 | `MARS ROVER-026` |
-| 100 | `MARS ROVER-100` |
+| 0 | `MarsRover - 000` |
+| 7 | `MarsRover - 007` |
+| 26 | `MarsRover - 026` |
+| 100 | `MarsRover - 100` |
 
 The port selector, rover-number field, live hotspot name, Wi-Fi password, single Flash button, 0–100% upload bar, percentage label, and IDE-style monospaced activity log are all on one screen. Device details come from the installed Windows driver; if Windows supplies no description, the COM port is still listed with “Device details unavailable.” Flash is disabled until a port and a valid number are selected.
 
@@ -36,7 +36,7 @@ If connection fails, confirm the selected COM port, check the cable and driver, 
 
 ## Included firmware and board settings
 
-The user's `mars_rover_goodera_ESP.rar` supplied the `.ino`, `pixelcar.h`, bootloader, partition table and compiled application. The original application names its hotspot `MARS ROVER-026`. The flasher validates that application's segment checksums and SHA-256, replaces its three number digits without changing string length, then recalculates the ESP image XOR checksum and appended SHA-256. It does not rebuild the Arduino sketch or change its motor, sensor, matrix, or web-control logic.
+The user's `MarsRover.zip` supplied `MarsRover.ino`, `pixelcar-control.h`, the HTML control reference, bootloader, partition table and compiled application. The original application names its hotspot `MarsRover - 001`. The flasher validates that application's segment checksums and SHA-256, replaces its three number digits without changing string length, then recalculates the ESP image XOR checksum and appended SHA-256. It does not rebuild the Arduino sketch or change its motor, sensor, matrix, or web-control logic.
 
 This personalization method supports only these supplied unsigned firmware assets. It rejects an unexpected, corrupted, truncated or signed image. Do not replace the assets with a different build without updating and validating the personalization code. The embedded application descriptor/ELF metadata remains that of the original build.
 
@@ -44,8 +44,8 @@ The supplied flash arguments specify ESP32 / 4 MB flash / DIO / 80 MHz:
 
 | Address | Image |
 | --- | --- |
-| `0x1000` | `mars_rover_goodera_ESP.ino.bootloader.bin` |
-| `0x8000` | `mars_rover_goodera_ESP.ino.partitions.bin` |
+| `0x1000` | `MarsRover.ino.bootloader.bin` |
+| `0x8000` | `MarsRover.ino.partitions.bin` |
 | `0xe000` | `boot_app0.bin` |
 | `0x10000` | Personalized application |
 
@@ -77,7 +77,7 @@ $p.ExitCode # 0 means all numbers personalize and bundled esptool starts
 
 The app embeds every file in `assets/`, including the Windows standalone esptool executable and firmware. Its normal runtime requires no Internet access and no administrator privileges. Temporary files are removed after esptool finishes.
 
-To modify the Arduino firmware, open `firmware/mars_rover_goodera_ESP/mars_rover_goodera_ESP.ino` with Arduino IDE, install the Espressif ESP32 board package and MD_MAX72XX library, and select the ESP32 Dev Module settings recorded in `assets/build.options.json`. The archive did not identify the exact Arduino core/library versions, so rebuilding the sketch byte-for-byte is not established. The supplied compiled binaries are the inputs used for this flasher build.
+To modify the Arduino firmware, open `firmware/MarsRover/MarsRover.ino` with Arduino IDE, install the Espressif ESP32 board package and MD_MAX72XX library, and select the ESP32 Dev Module settings recorded in `assets/build.options.json`. The archive did not identify the exact Arduino core/library versions, so rebuilding the sketch byte-for-byte is not established. The supplied compiled binaries are the inputs used for this flasher build.
 
 ## Validation and limitations
 
@@ -88,6 +88,6 @@ The initial EXE was cross-compiled on Linux. Windows GUI interaction with physic
 ## Source and third-party notices
 
 - Flasher source: `main_windows.go`, `ports_windows.go`, `theme_windows.go`, `firmware.go`, tests, and build scripts.
-- Original rover source: `firmware/mars_rover_goodera_ESP/`.
+- Original rover source: `firmware/MarsRover/`.
 - esptool 5.5.0: official [Windows release](https://github.com/espressif/esptool/releases/tag/v5.5.0), [corresponding source](https://github.com/espressif/esptool/tree/v5.5.0), the bundled source archive `third_party/esptool-v5.5.0-source.tar.gz`, and `assets/ESPTOOL-LICENSE.txt` / `assets/ESPTOOL-README.md`. Its standalone distribution includes its own Python runtime; users do not install Python separately.
 - Asset origin and SHA-256 fingerprints: `ASSETS.json`.

@@ -11,7 +11,7 @@ func hotspot(n int) (string, error) {
 	if n < 0 || n > 100 {
 		return "", fmt.Errorf("Rover number must be a whole number from 0 to 100")
 	}
-	return fmt.Sprintf("MARS ROVER-%03d", n), nil
+	return fmt.Sprintf("MarsRover - %03d", n), nil
 }
 
 // Personalize only the supplied unsigned ESP32 application image. Validate its
@@ -53,7 +53,7 @@ func personalize(original []byte, n int) ([]byte, error) {
 	if b[digestStart-1] != checksum || !bytes.Equal(digest[:], b[digestStart:]) {
 		return nil, fmt.Errorf("firmware integrity check failed")
 	}
-	old := []byte("MARS ROVER-026\x00")
+	old := []byte("MarsRover - 001\x00")
 	if bytes.Count(b[:p], old) != 1 {
 		return nil, fmt.Errorf("expected exactly one original hotspot name")
 	}

@@ -2,7 +2,7 @@
 #include <WebServer.h>
 #include <MD_MAX72xx.h>
 #include <SPI.h>
-#include "pixelcar.h"
+#include "pixelcar-control.h"
 
 // ====================== MOTOR PINS ======================
 #define ENA 16
@@ -21,7 +21,7 @@ const uint16_t AVOID_LEFT_MS = 450;
 const uint8_t AVOID_MOTOR_SPEED = 180;
 
 // ====================== WIFI ======================
-const char *ssid = "MARS ROVER-026";
+const char *ssid = "MarsRover - 001";
 const char *password = "12345678";
 
 WebServer server(80);
@@ -39,8 +39,8 @@ MD_MAX72XX mx = MD_MAX72XX(HARDWARE_TYPE, DATA_PIN, CLK_PIN, CS_PIN, MAX_DEVICES
 // ====================== MODULE MAPPING FOR SQUARE FACE ======================
 const int TOP_LEFT = 0;
 const int TOP_RIGHT = 1;
-const int BOTTOM_RIGHT = 2;
-const int BOTTOM_LEFT = 3;
+const int BOTTOM_LEFT = 2;
+const int BOTTOM_RIGHT = 3;
 
 // ====================== TEXT MODE SETTINGS ======================
 const uint8_t DISPLAY_COLUMNS = MAX_DEVICES * 8;

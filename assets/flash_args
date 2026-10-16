@@ -1,5 +1,5 @@
 --flash-mode dio --flash-freq 80m --flash-size 4MB  
-0x1000 mars_rover_goodera_ESP.ino.bootloader.bin  
-0x8000 mars_rover_goodera_ESP.ino.partitions.bin  
+0x1000 MarsRover.ino.bootloader.bin  
+0x8000 MarsRover.ino.partitions.bin  
 0xe000 boot_app0.bin  
-0x10000 mars_rover_goodera_ESP.ino.bin 
+0x10000 MarsRover.ino.bin 

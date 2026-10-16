@@ -1,6 +1,3 @@
-#pragma once
-#include <Arduino.h>
-const char WEBPAGE[] PROGMEM = R"HTMLPAGE(
 <!doctype html>
 <html lang="en">
 <head>
@@ -77,12 +74,21 @@ header{display:flex;align-items:center;justify-content:space-between;gap:14px;fl
   color:var(--amber);text-align:center;min-height:26px}
 .caption small{display:block;color:var(--muted);font-family:var(--body);font-weight:800;
   font-size:.72rem;text-transform:none;letter-spacing:.5px;margin-top:2px}
+.draw-tools{display:flex;gap:8px;margin-top:12px;flex-wrap:wrap;justify-content:center}
 
 /* right column */
 .modebar{display:flex;background:var(--bg1);border:1px solid var(--edge);border-radius:14px;padding:5px;margin-bottom:16px}
 .modebar button{flex:1;border:0;background:transparent;color:var(--muted);font-family:var(--disp);
   font-weight:600;font-size:.92rem;padding:11px;border-radius:10px;cursor:pointer;transition:.2s}
 .modebar button.on{background:var(--raise);color:var(--ink);box-shadow:0 3px 10px rgba(0,0,0,.3)}
+
+.faces{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+.face-btn{background:var(--bg1);border:1px solid var(--edge);border-radius:14px;padding:12px 6px 9px;
+  cursor:pointer;text-align:center;transition:.15s;color:var(--ink)}
+.face-btn:hover{border-color:rgba(255,194,75,.4);transform:translateY(-2px)}
+.face-btn.on{border-color:var(--amber);background:rgba(255,194,75,.1)}
+.face-btn .e{font-size:1.7rem;line-height:1}
+.face-btn .n{display:block;font-size:.66rem;font-weight:800;color:var(--muted);margin-top:5px;text-transform:capitalize}
 
 .textmode label{font-weight:800;font-size:.82rem;color:var(--muted);display:block;margin-bottom:7px}
 .textmode .row{display:flex;gap:8px}
@@ -160,7 +166,7 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:26px;heigh
   <header>
     <div class="brand">
       <div class="logo">🤖</div>
-      <div><h1>Mars Rover Bot</h1><p>ESP32 · WiFi drive + text</p></div>
+      <div><h1>Mars Rover Bot</h1><p>ESP32 · WiFi drive + face</p></div>
     </div>
     <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
       <div class="conn">
@@ -175,17 +181,36 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:26px;heigh
   <div class="demo-note" id="demoNote">Demo mode — no car connected. Everything works on screen and the commands that
     <em>would</em> be sent appear in the console below. Enter your car's IP and hit Connect to drive the real thing.</div>
 
-  <!-- TOP: display panel + text controls -->
+  <!-- TOP: face panel + display controls -->
   <div class="top">
     <div class="card panel-card">
       <div class="bezel"><canvas id="screen" width="384" height="384"></canvas></div>
-      <div class="caption" id="caption">HELLO STEM<small>What the car's pixel display is showing</small></div>
+      <div class="caption" id="caption">Happy<small>What the car's pixel display is showing</small></div>
+      <div class="draw-tools hide" id="drawTools">
+        <button class="btn ghost" id="clearBtn">Clear</button>
+        <button class="btn mint" id="sendDrawBtn">Send face</button>
+        <button class="btn ghost" id="doneBtn">Done</button>
+      </div>
     </div>
 
     <div class="card">
       <h2>🖥️ Pixel display</h2>
-      <div class="hint">Text mode — type a message and send it to the car</div>
-      <div id="textMode" class="textmode">
+      <div class="hint">Two modes on the car — pick one, then set what it shows</div>
+      <div class="modebar" id="modebar">
+        <button data-m="face" class="on">😊 Emoticon</button>
+        <button data-m="text">🔤 Text</button>
+      </div>
+
+      <!-- EMOTICON MODE -->
+      <div id="faceMode">
+        <div class="faces" id="faces"></div>
+        <div style="margin-top:14px;text-align:center">
+          <button class="btn ghost" id="drawToggle">✏️ Draw your own face</button>
+        </div>
+      </div>
+
+      <!-- TEXT MODE -->
+      <div id="textMode" class="textmode hide">
         <label>Message to scroll across the display</label>
         <div class="row">
           <input type="text" id="textInput" maxlength="40" value="HELLO STEM"/>
@@ -215,6 +240,10 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:26px;heigh
         <div class="sp">
           <label>Speed <b><span id="spVal">200</span> / 255</b></label>
           <input type="range" id="speed" min="0" max="255" value="200"/>
+        </div>
+        <div class="aux">
+          <button class="btn ghost" id="obstacleBtn">🛡️ Obstacle detection: off</button>
+          <button class="btn ghost" id="irStatus" disabled>IR GPIO 15: checking…</button>
         </div>
         <div class="kbd">
           <kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> or <kbd>↑</kbd><kbd>↓</kbd><kbd>←</kbd><kbd>→</kbd> to drive ·
@@ -257,10 +286,49 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:26px;heigh
 const N=16, SZ=384, cell=SZ/N;
 const cv=document.getElementById('screen'), ctx=cv.getContext('2d');
 const blank=()=>Array.from({length:N},()=>new Array(N).fill(0));
+const P=(g,r,c)=>{if(r>=0&&r<N&&c>=0&&c<N)g[r][c]=1;};
+const BLK=(g,r,c,h,w)=>{for(let i=0;i<h;i++)for(let j=0;j<w;j++)P(g,r+i,c+j);};
 
-/* ============ DISPLAY STATE + TEXT RENDER ============ */
-const D={mode:'text',grid:blank(),cols:null,off:0,last:0};
+/* face primitives */
+const LC=4,RC=11;
+const eyeOpen=(g,c)=>BLK(g,4,c-1,3,3);
+const eyeBig=(g,c)=>BLK(g,3,c-1,4,3);
+const eyeHappy=(g,c)=>{P(g,6,c-1);P(g,5,c);P(g,6,c+1);};
+const eyeLine=(g,c)=>{P(g,6,c-1);P(g,6,c);P(g,6,c+1);};
+const eyeHeart=(g,c)=>{P(g,4,c-1);P(g,4,c+1);P(g,5,c-1);P(g,5,c);P(g,5,c+1);P(g,6,c);};
+const eyeX=(g,c)=>{P(g,4,c-1);P(g,4,c+1);P(g,5,c);P(g,6,c-1);P(g,6,c+1);};
+const put=(g,pts)=>pts.forEach(([r,c])=>P(g,r,c));
+const mSmile=g=>put(g,[[10,4],[10,11],[11,5],[11,10],[12,6],[12,7],[12,8],[12,9]]);
+const mFrown=g=>put(g,[[12,4],[12,11],[11,5],[11,10],[10,6],[10,7],[10,8],[10,9]]);
+const mFlat=g=>{for(let c=5;c<=10;c++)P(g,11,c);};
+const mOpen=g=>put(g,[[10,7],[10,8],[11,6],[11,9],[12,7],[12,8]]);
+const mGrin=g=>put(g,[[9,5],[9,6],[9,7],[9,8],[9,9],[9,10],[10,4],[10,11],[11,5],[11,10],[12,6],[12,7],[12,8],[12,9]]);
+const mWavy=g=>put(g,[[11,4],[10,5],[11,6],[10,7],[11,8],[10,9],[11,10],[10,11]]);
+const browAngry=g=>put(g,[[3,2],[3,3],[4,4],[4,5],[3,13],[3,12],[4,11],[4,10]]);
+const shades=g=>{BLK(g,4,2,3,4);BLK(g,4,10,3,4);for(let c=6;c<=9;c++)P(g,5,c);};
+const tear=g=>{P(g,7,3);P(g,8,3);};
+const zzz=g=>put(g,[[2,11],[2,12],[2,13],[3,12],[4,11],[4,12],[4,13]]);
 
+const FACES={
+  happy:g=>{eyeOpen(g,LC);eyeOpen(g,RC);mSmile(g);},
+  laugh:g=>{eyeHappy(g,LC);eyeHappy(g,RC);mGrin(g);},
+  wink:g=>{eyeHappy(g,LC);eyeOpen(g,RC);mSmile(g);},
+  love:g=>{eyeHeart(g,LC);eyeHeart(g,RC);mSmile(g);},
+  cool:g=>{shades(g);mSmile(g);},
+  surprised:g=>{eyeBig(g,LC);eyeBig(g,RC);mOpen(g);},
+  neutral:g=>{eyeOpen(g,LC);eyeOpen(g,RC);mFlat(g);},
+  meh:g=>{eyeLine(g,LC);eyeLine(g,RC);mFlat(g);},
+  sleepy:g=>{eyeLine(g,LC);eyeLine(g,RC);P(g,12,7);P(g,12,8);zzz(g);},
+  sad:g=>{eyeOpen(g,LC);eyeOpen(g,RC);mFrown(g);tear(g);},
+  angry:g=>{browAngry(g);eyeOpen(g,LC);eyeOpen(g,RC);mFrown(g);},
+  dizzy:g=>{eyeX(g,LC);eyeX(g,RC);mWavy(g);},
+};
+const EMO=[['happy','😊'],['laugh','😄'],['wink','😉'],['love','😍'],['cool','😎'],['surprised','😮'],
+  ['neutral','😐'],['meh','😒'],['sleepy','😴'],['sad','😢'],['angry','😠'],['dizzy','😵']];
+const faceGrid=n=>{const g=blank();(FACES[n]||FACES.happy)(g);return g;};
+const flatten=g=>g.flat();
+
+/* text → scrolling columns via canvas raster */
 function textCols(text){
   const c=document.createElement('canvas');let x=c.getContext('2d');
   x.font='bold 13px "JetBrains Mono",monospace';
@@ -274,31 +342,26 @@ function textCols(text){
   return cols;
 }
 
+/* display state + render loop */
+const D={mode:'face',face:'happy',grid:faceGrid('happy'),draw:false,cols:null,off:0,last:0};
 function currentGrid(t){
-  if(D.cols){
+  if(D.mode==='text'&&D.cols){
     if(t-D.last>85){D.off=(D.off+1)%D.cols.length;D.last=t;}
     const g=blank();
-    for(let cx=0;cx<N;cx++){
-      const src=D.cols[(D.off+cx)%D.cols.length];
-      for(let y=0;y<N;y++)if(src[y])g[y][cx]=1;
-    }
+    for(let cx=0;cx<N;cx++){const s=D.cols[(D.off+cx)%D.cols.length];for(let y=0;y<N;y++)if(s[y])g[y][cx]=1;}
     return g;
   }
   return D.grid;
 }
-
 function render(t){
-  const g=currentGrid(t);
+  const g=(D.mode==='face'&&D.draw)?D.grid:currentGrid(t);
   ctx.clearRect(0,0,SZ,SZ);
   for(let r=0;r<N;r++)for(let c=0;c<N;c++){
     const x=c*cell+cell/2,y=r*cell+cell/2;
-    if(g[r][c]){
-      ctx.shadowColor='#FFC24B';ctx.shadowBlur=13;ctx.fillStyle='#FFD27A';
-      ctx.beginPath();ctx.arc(x,y,cell*0.34,0,7);ctx.fill();
-    } else {
-      ctx.shadowBlur=0;ctx.fillStyle='rgba(255,194,75,.06)';
-      ctx.beginPath();ctx.arc(x,y,cell*0.14,0,7);ctx.fill();
-    }
+    if(g[r][c]){ctx.shadowColor='#FFC24B';ctx.shadowBlur=13;ctx.fillStyle='#FFD27A';
+      ctx.beginPath();ctx.arc(x,y,cell*0.34,0,7);ctx.fill();}
+    else{ctx.shadowBlur=0;ctx.fillStyle='rgba(255,194,75,.06)';
+      ctx.beginPath();ctx.arc(x,y,cell*0.14,0,7);ctx.fill();}
   }
   requestAnimationFrame(render);
 }
@@ -327,7 +390,17 @@ const Comm={base:'',connected:false,
     if(!this.connected)return;
     let path='';
     if(obj.cmd==='move')path='/api/move?dir='+encodeURIComponent(obj.dir)+'&speed='+obj.speed;
-    else if(obj.cmd==='text')path='/api/text?value='+encodeURIComponent(obj.text);
+    else if(obj.cmd==='face'){
+      path='/api/face?name='+encodeURIComponent(obj.name);
+      if(obj.frame){
+        let bits='';for(let i=0;i<obj.frame.length;i+=4){
+          const n=(obj.frame[i]<<3)|(obj.frame[i+1]<<2)|(obj.frame[i+2]<<1)|obj.frame[i+3];bits+=n.toString(16);
+        }
+        path+='&frame='+bits;
+      }
+    }else if(obj.cmd==='text')path='/api/text?value='+encodeURIComponent(obj.text);
+    else if(obj.cmd==='mode')path='/api/mode?value='+encodeURIComponent(obj.mode);
+    else if(obj.cmd==='aux')path='/api/aux?name='+encodeURIComponent(obj.name)+'&on='+(obj.on?1:0);
     if(path)fetch(this.base+path,{cache:'no-store'}).then(r=>{if(!r.ok)throw new Error(r.status);})
       .catch(()=>{this.connected=false;setStatus('off','Offline');$('#demoNote').classList.remove('hide');});
   }
@@ -372,6 +445,23 @@ window.addEventListener('keyup',e=>{const d=keymap[e.code];if(d&&curDir===d){e.p
 $('#speed').addEventListener('input',e=>{speed=+e.target.value;$('#spVal').textContent=speed;
   if(curDir)Comm.send({cmd:'move',dir:curDir,speed},`MOVE  ${curDir.padEnd(8)} speed ${speed}`);});
 
+let obstacleDetection=false;
+$('#obstacleBtn').addEventListener('click',()=>{obstacleDetection=!obstacleDetection;
+  $('#obstacleBtn').textContent='🛡️ Obstacle detection: '+(obstacleDetection?'on':'off');
+  $('#obstacleBtn').classList.toggle('mint',obstacleDetection);
+  Comm.send({cmd:'aux',name:'obstacle',on:obstacleDetection},`AUX   obstacle detection ${obstacleDetection?'on':'off'}`);});
+async function updateIrStatus(){
+  if(!Comm.connected)return;
+  try{const r=await fetch(Comm.base+'/obstacle/status',{cache:'no-store'}),parts=(await r.text()).trim().split(',');
+    obstacleDetection=parts[0]==='1';const detected=parts[1]==='1';
+    $('#obstacleBtn').textContent='🛡️ Obstacle detection: '+(obstacleDetection?'on':'off');
+    $('#obstacleBtn').classList.toggle('mint',obstacleDetection);
+    $('#irStatus').textContent='IR GPIO 15: '+(detected?'OBJECT':'CLEAR');
+    $('#irStatus').style.color=detected?'var(--coral)':'var(--mint)';
+  }catch(e){}
+}
+setInterval(updateIrStatus,500);
+
 /* ============ BLOCK PROGRAMMER ============ */
 const programSteps=[];
 const blockNames={forward:'Move forward',backward:'Move backward',left:'Turn left',right:'Turn right',stop:'Stop'};
@@ -415,34 +505,89 @@ $('#stopProgramBtn').addEventListener('click',async()=>{
 });
 renderProgram();
 
-/* ============ TEXT DISPLAY ============ */
-function caption(main,sub){
-  $('#caption').innerHTML=`${main}<small>${sub||"What the car's pixel display is showing"}</small>`;
+/* ============ DISPLAY MODE + FACES ============ */
+function caption(main,sub){$('#caption').innerHTML=`${main}<small>${sub||"What the car's pixel display is showing"}</small>`;}
+
+// build emotion palette
+const facesEl=$('#faces');
+EMO.forEach(([name,emoji])=>{
+  const b=document.createElement('button');b.className='face-btn';b.dataset.name=name;
+  b.innerHTML=`<span class="e">${emoji}</span><span class="n">${name}</span>`;
+  b.addEventListener('click',()=>selectFace(name,b));
+  facesEl.appendChild(b);
+});
+function selectFace(name){
+  exitDraw();
+  D.mode='face';D.face=name;D.grid=faceGrid(name);D.cols=null;
+  document.querySelectorAll('.face-btn').forEach(b=>b.classList.toggle('on',b.dataset.name===name));
+  caption(name);
+  Comm.send({cmd:'face',name,frame:flatten(D.grid)},`FACE  ${name}`);
 }
+
+function setMode(m){
+  D.mode=(m==='text')?'text':'face';
+  $('#modebar').querySelectorAll('button').forEach(b=>b.classList.toggle('on',b.dataset.m===m));
+  $('#faceMode').classList.toggle('hide',m!=='face');
+  $('#textMode').classList.toggle('hide',m!=='text');
+  Comm.send({cmd:'mode',mode:D.mode},`MODE  ${D.mode==='text'?'text':'emoticon'}`);
+  if(m==='text'){sendText($('#textInput').value);}
+  else{exitDraw();D.grid=faceGrid(D.face);D.cols=null;caption(D.face);}
+}
+$('#modebar').addEventListener('click',e=>{const b=e.target.closest('button');if(b)setMode(b.dataset.m);});
 
 function sendText(txt){
   txt=(txt||'').trim()||' ';
-  D.mode='text';
-  D.cols=textCols(txt.toUpperCase());
-  D.off=0;
-  D.last=performance.now();
+  D.mode='text';D.cols=textCols(txt.toUpperCase());D.off=0;
   caption('“'+txt+'”','Scrolling text on the display');
   Comm.send({cmd:'text',text:txt},`TEXT  "${txt}"`);
 }
-
 $('#scrollBtn').addEventListener('click',()=>sendText($('#textInput').value));
 $('#textInput').addEventListener('keydown',e=>{if(e.key==='Enter')sendText($('#textInput').value);});
-$('#presets').addEventListener('click',e=>{
-  const p=e.target.closest('.preset');if(!p)return;
-  const t=p.textContent.trim();
-  $('#textInput').value=t;
-  sendText(t);
+$('#presets').addEventListener('click',e=>{const p=e.target.closest('.preset');if(!p)return;
+  const t=p.textContent.trim();$('#textInput').value=t;sendText(t);});
+
+/* ============ DRAW YOUR OWN ============ */
+let painting=false,paintVal=1;
+function cellFromEvent(e){
+  const r=cv.getBoundingClientRect();
+  const c=Math.floor((e.clientX-r.left)/r.width*N);
+  const row=Math.floor((e.clientY-r.top)/r.height*N);
+  return{row:Math.max(0,Math.min(N-1,row)),col:Math.max(0,Math.min(N-1,c))};
+}
+function enterDraw(){
+  D.draw=true;D.mode='face';D.cols=null;
+  $('#drawTools').classList.remove('hide');
+  $('#drawToggle').textContent='✏️ Drawing… tap the panel';
+  document.querySelectorAll('.face-btn').forEach(b=>b.classList.remove('on'));
+  caption('Custom','Tap or drag on the panel to draw');
+}
+function exitDraw(){
+  if(!D.draw)return;
+  D.draw=false;$('#drawTools').classList.add('hide');$('#drawToggle').textContent='✏️ Draw your own face';
+}
+$('#drawToggle').addEventListener('click',()=>{D.draw?exitDraw():enterDraw();});
+$('#clearBtn').addEventListener('click',()=>{D.grid=blank();});
+$('#doneBtn').addEventListener('click',exitDraw);
+$('#sendDrawBtn').addEventListener('click',()=>{
+  Comm.send({cmd:'face',name:'custom',frame:flatten(D.grid)},'FACE  custom (drawn)');
+  caption('Custom sent ✓','Your drawing is on the car');
+});
+cv.addEventListener('pointerdown',e=>{
+  if(!D.draw)return;e.preventDefault();const{row,col}=cellFromEvent(e);
+  paintVal=D.grid[row][col]?0:1;D.grid[row][col]=paintVal;painting=true;
+});
+cv.addEventListener('pointermove',e=>{
+  if(!D.draw||!painting)return;const{row,col}=cellFromEvent(e);D.grid[row][col]=paintVal;
+});
+window.addEventListener('pointerup',()=>{
+  if(D.draw&&painting){painting=false;
+    Comm.send({cmd:'face',name:'custom',frame:flatten(D.grid)},'FACE  custom (drawn)');}
 });
 
 /* ============ INIT ============ */
 $('#connectBtn').addEventListener('click',()=>Comm.connect($('#ip').value.trim()));
-sendText($('#textInput').value);
-log('system','ready — text mode. Enter a message or drive the rover.');
+document.querySelector('.face-btn').classList.add('on'); // happy selected
+log('system','ready — demo mode. Pick a face or drive around.');
 if(location.protocol==='http:'||location.protocol==='https:'){
   $('#ip').value=location.host;
   Comm.connect(location.host);
@@ -450,4 +595,3 @@ if(location.protocol==='http:'||location.protocol==='https:'){
 </script>
 </body>
 </html>
-)HTMLPAGE";

@@ -21,3 +21,7 @@ GitHub Windows workflow run 38569737764 passed the native Windows build, all fir
 ## Single-screen interface update
 
 The Windows workflow includes a native GUI self-test for control creation, live hotspot previews, invalid-number rejection, Flash enablement, and mapping a simulated `COM7 — Silicon Labs CP210x USB to UART Bridge` entry back to `COM7`. Device descriptions in normal operation are queried from Windows SetupAPI/Device Manager registry properties. Real CP210x/CH340/FTDI hardware and USB flashing still require physical validation.
+
+## Updated firmware: MarsRover.zip
+
+The updated source and compiled ESP32 images replace the original firmware inputs. The uploaded sketch uses `MarsRover - 001`; the flasher preserves this prefix and personalizes only its three digits for rover numbers 0–100. The application image is now 997,728 bytes. The flash layout remains ESP32 / DIO / 80 MHz / 4 MB, with addresses 0x1000, 0x8000, 0xe000 and 0x10000.

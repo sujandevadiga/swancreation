@@ -8,7 +8,7 @@ import (
 )
 
 func TestAllRoverNumbers(t *testing.T) {
-	original, e := os.ReadFile("assets/mars_rover_goodera_ESP.ino.bin")
+	original, e := os.ReadFile("assets/MarsRover.ino.bin")
 	if e != nil {
 		t.Fatal(e)
 	}
@@ -26,9 +26,9 @@ func TestAllRoverNumbers(t *testing.T) {
 			t.Fatal("digest")
 		}
 		// Differences may occur only in the three SSID digits, XOR checksum and digest.
-		idx := bytes.Index(original, []byte("MARS ROVER-026"))
+		idx := bytes.Index(original, []byte("MarsRover - 001"))
 		for i := range b {
-			if b[i] != original[i] && !(i >= idx+11 && i < idx+14) && i != len(b)-33 && i < len(b)-32 {
+			if b[i] != original[i] && !(i >= idx+12 && i < idx+15) && i != len(b)-33 && i < len(b)-32 {
 				t.Fatalf("unexpected change at %d", i)
 			}
 		}

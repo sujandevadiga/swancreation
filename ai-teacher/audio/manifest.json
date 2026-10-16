@@ -1,0 +1,334 @@
+{
+  "voice": "CMU Flite slt, synthetic English",
+  "format": "MP3, mono, 22050 Hz, 48 kbit/s",
+  "clips": [
+    {
+      "filename": "welcome.mp3",
+      "text": "Welcome to AI Teacher. Choose your class and subject. Let us learn together.",
+      "seconds": 5.12,
+      "bytes": 30720,
+      "mean_db": -18.1,
+      "sha256": "5704b0d978bce3f205891fba0d683a4620f30809b6bedad4b02403d5bf2d0034"
+    },
+    {
+      "filename": "c00.mp3",
+      "text": "Correct! Well done.",
+      "seconds": 1.463,
+      "bytes": 8777,
+      "mean_db": -18.5,
+      "sha256": "299da548750af34e098badfbf31d3ec732d90c69b0e7549ca58c99f35333a7a3"
+    },
+    {
+      "filename": "c01.mp3",
+      "text": "That is right! Great thinking.",
+      "seconds": 2.142,
+      "bytes": 12852,
+      "mean_db": -18.2,
+      "sha256": "a39a8472fb56290b75d2907de78abc87969b52befc4882f703f94a777ef29a80"
+    },
+    {
+      "filename": "c02.mp3",
+      "text": "Excellent work! You got it.",
+      "seconds": 2.011,
+      "bytes": 12068,
+      "mean_db": -18.4,
+      "sha256": "b42e91ef87b9833dbbf844b42b10e99afb597c366f9e13de80f195e598a77839"
+    },
+    {
+      "filename": "c03.mp3",
+      "text": "Good job! That is the correct answer.",
+      "seconds": 2.455,
+      "bytes": 14733,
+      "mean_db": -18.2,
+      "sha256": "9b6e3d362fd4fa950e0d5e1239109963ec36c2cf0a9c9d16c0a936bc5aec7f13"
+    },
+    {
+      "filename": "c04.mp3",
+      "text": "Well done! Keep learning.",
+      "seconds": 1.829,
+      "bytes": 10971,
+      "mean_db": -18.3,
+      "sha256": "7a2200013839b671c91c958f114f4005295c03ac332eaf3d74407ba897725351"
+    },
+    {
+      "filename": "c05.mp3",
+      "text": "Yes! You chose the right answer.",
+      "seconds": 2.377,
+      "bytes": 14263,
+      "mean_db": -18.2,
+      "sha256": "eae3c54e7cffcec7ca4ccf13ba7ff27eb4a9a632cff1651e30cd96821328df19"
+    },
+    {
+      "filename": "c06.mp3",
+      "text": "Great work! Keep going.",
+      "seconds": 1.985,
+      "bytes": 11912,
+      "mean_db": -18.2,
+      "sha256": "feb65f4fd214da8ee41e3ab648a14ef50d306c071ff27b8531325fb07fbd21ef"
+    },
+    {
+      "filename": "c07.mp3",
+      "text": "Correct! Your practice is paying off.",
+      "seconds": 2.638,
+      "bytes": 15830,
+      "mean_db": -18.2,
+      "sha256": "f01dda126544b9e4b3fe89aa8e9deaca9f9868d3ae66f9561815f40c8cfd44e9"
+    },
+    {
+      "filename": "c08.mp3",
+      "text": "Nicely done! That is right.",
+      "seconds": 1.855,
+      "bytes": 11128,
+      "mean_db": -18.4,
+      "sha256": "57f34adf698b743736a9f41c60e5ade95276b4abd6abaf1773fd8242b6a407fe"
+    },
+    {
+      "filename": "c09.mp3",
+      "text": "You got it! Keep up the good work.",
+      "seconds": 2.351,
+      "bytes": 14106,
+      "mean_db": -18.3,
+      "sha256": "f19e6ab2349f46921309a17b6bf4ddabc844423c235a18668f724e26043b9550"
+    },
+    {
+      "filename": "c10.mp3",
+      "text": "That is correct! Ready for more learning?",
+      "seconds": 2.429,
+      "bytes": 14576,
+      "mean_db": -18.1,
+      "sha256": "faad91a09e2c0fc9cc81ef5b3d6036989adda000734e49a27350a21b5b2eed01"
+    },
+    {
+      "filename": "c11.mp3",
+      "text": "Well answered! Keep thinking carefully.",
+      "seconds": 2.978,
+      "bytes": 17868,
+      "mean_db": -18.0,
+      "sha256": "c549a155f0c0293c85a39369502b2c08a756ecad1c3dc2446232d09ec14b852c"
+    },
+    {
+      "filename": "c12.mp3",
+      "text": "Great choice! That answer is correct.",
+      "seconds": 2.717,
+      "bytes": 16300,
+      "mean_db": -18.3,
+      "sha256": "6d6132c2419d789272a31c17b388d52005c44543096313f1ccff3c36aaa4fa7b"
+    },
+    {
+      "filename": "c13.mp3",
+      "text": "Correct! You are making progress.",
+      "seconds": 2.56,
+      "bytes": 15360,
+      "mean_db": -18.2,
+      "sha256": "d9da7904bc76405511d11e403ca64e62a1b8f1c048600349226164fe004469f6"
+    },
+    {
+      "filename": "c14.mp3",
+      "text": "Good thinking! You found the answer.",
+      "seconds": 2.455,
+      "bytes": 14733,
+      "mean_db": -18.2,
+      "sha256": "043b62b7e54aa6f9edb6807535ef3c64f2dd12357ed1ad9ff85f316517532af1"
+    },
+    {
+      "filename": "c15.mp3",
+      "text": "Yes, that is right! Keep exploring.",
+      "seconds": 2.9,
+      "bytes": 17397,
+      "mean_db": -18.0,
+      "sha256": "03f2b660705398afd7e494b55e2ff3cffd010394483e0fddd399d3ec98d025f8"
+    },
+    {
+      "filename": "c16.mp3",
+      "text": "Excellent! Another correct answer.",
+      "seconds": 2.56,
+      "bytes": 15360,
+      "mean_db": -18.0,
+      "sha256": "eef727ba55f47797a1f01fccbb8b5a02f69bf1fc5c2e91366805675fd4732a19"
+    },
+    {
+      "filename": "c17.mp3",
+      "text": "Well done! You understood this one.",
+      "seconds": 2.508,
+      "bytes": 15046,
+      "mean_db": -18.0,
+      "sha256": "359d07728fe5ec18770eac10f438e5b6c7e29ef1a08dde83012f74377d6bd974"
+    },
+    {
+      "filename": "c18.mp3",
+      "text": "That is right! Keep building your knowledge.",
+      "seconds": 2.769,
+      "bytes": 16614,
+      "mean_db": -18.3,
+      "sha256": "0ead918c4350550c80d6778c5a373a62a04a44e74970b0a68d8af2acc77e8b5b"
+    },
+    {
+      "filename": "c19.mp3",
+      "text": "Correct! Every step helps you learn.",
+      "seconds": 2.769,
+      "bytes": 16614,
+      "mean_db": -18.0,
+      "sha256": "96c0db8f86bc50d74974846bb0f42bd3b8c5e2ccdc6f7313c62968d668290df0"
+    },
+    {
+      "filename": "w00.mp3",
+      "text": "Not quite. Let us learn from this one.",
+      "seconds": 2.952,
+      "bytes": 17711,
+      "mean_db": -18.0,
+      "sha256": "fa4411af64a69d3c2dd32b2280f3e3dec301154f1c6a04da553337a33429696b"
+    },
+    {
+      "filename": "w01.mp3",
+      "text": "That was not the correct answer. Keep learning.",
+      "seconds": 3.082,
+      "bytes": 18494,
+      "mean_db": -17.6,
+      "sha256": "3d3b1de256c79e4815781a4ba99d116771e644da809811f70b16821ac878b18f"
+    },
+    {
+      "filename": "w02.mp3",
+      "text": "Good effort. Read the explanation and keep going.",
+      "seconds": 3.344,
+      "bytes": 20062,
+      "mean_db": -17.8,
+      "sha256": "e172046ea14a239fce8d710199f90e245f217f0c7f11ed294be0de952fa27452"
+    },
+    {
+      "filename": "w03.mp3",
+      "text": "Not this time. Mistakes help us learn.",
+      "seconds": 2.978,
+      "bytes": 17868,
+      "mean_db": -17.9,
+      "sha256": "c5b7a34bfac28afd43e477c88875d30841a87e9f6a6a2be824a6ad69c211b2aa"
+    },
+    {
+      "filename": "w04.mp3",
+      "text": "Take your time. You can learn this.",
+      "seconds": 2.377,
+      "bytes": 14263,
+      "mean_db": -18.2,
+      "sha256": "f85dedf48c977813be033d6399bd7de80cafcca1f7f66bdee4decfdca1db16f4"
+    },
+    {
+      "filename": "w05.mp3",
+      "text": "That answer was not quite right. Keep practicing.",
+      "seconds": 3.553,
+      "bytes": 21316,
+      "mean_db": -17.7,
+      "sha256": "8392a57b7e8fc13594fe4d3038402bf6141cb44d324685448d7eefd5daf9da2d"
+    },
+    {
+      "filename": "w06.mp3",
+      "text": "Keep going. Look at the correct answer.",
+      "seconds": 2.56,
+      "bytes": 15360,
+      "mean_db": -18.1,
+      "sha256": "87e64e278d116ed8d5cbfe3ded4aa9ffe6b2e72c6daa723a0a0088a2ff44bd55"
+    },
+    {
+      "filename": "w07.mp3",
+      "text": "Good try. Let us understand the explanation.",
+      "seconds": 3.082,
+      "bytes": 18494,
+      "mean_db": -17.6,
+      "sha256": "234ecb50db634c2f36298bccd0a82fe6b2fa25b84355d62c1cdf5c4c1d2ddc6f"
+    },
+    {
+      "filename": "w08.mp3",
+      "text": "Not quite. Think about what you learned.",
+      "seconds": 2.743,
+      "bytes": 16457,
+      "mean_db": -18.1,
+      "sha256": "3bee128d935f1a65462d90aee0d19cb4e2fe883de7560a85f82fe5686216df5b"
+    },
+    {
+      "filename": "w09.mp3",
+      "text": "It is okay to make mistakes. Keep trying.",
+      "seconds": 3.03,
+      "bytes": 18181,
+      "mean_db": -18.1,
+      "sha256": "3dc90c32514d2da81430e7e49e8cf5cc9934994458055c1f8e336de7f1ba40f3"
+    },
+    {
+      "filename": "w10.mp3",
+      "text": "Let us learn the right answer together.",
+      "seconds": 2.508,
+      "bytes": 15046,
+      "mean_db": -18.2,
+      "sha256": "637ea9b1b9a2d25debdf9d03361c18bc42d2238c1c6ca8276d1302dafc335878"
+    },
+    {
+      "filename": "w11.mp3",
+      "text": "Good effort. Take a moment to understand this one.",
+      "seconds": 3.344,
+      "bytes": 20062,
+      "mean_db": -17.8,
+      "sha256": "108b8bc2ac2cd28443b1073dcf35976b52f1f6f1c655046482d576f80519e5c0"
+    },
+    {
+      "filename": "w12.mp3",
+      "text": "That was a tricky one. Keep learning.",
+      "seconds": 2.325,
+      "bytes": 13949,
+      "mean_db": -18.1,
+      "sha256": "0f255eb4c976f6abed81320e84b6db372cb76ae7c1e2f49d802c93606d453f7f"
+    },
+    {
+      "filename": "w13.mp3",
+      "text": "Not quite right. Review the answer on the screen.",
+      "seconds": 3.004,
+      "bytes": 18024,
+      "mean_db": -18.0,
+      "sha256": "317d4cfee2a4419a770f0615dcbcce4b9da7c03fedbb0aa75adecaf0e98174d4"
+    },
+    {
+      "filename": "w14.mp3",
+      "text": "Keep practicing. Every question teaches you something.",
+      "seconds": 3.997,
+      "bytes": 23980,
+      "mean_db": -17.5,
+      "sha256": "962a16046c904c03d47c34a0191a43a30ec1d63e72600da23eb102d1de05ba43"
+    },
+    {
+      "filename": "w15.mp3",
+      "text": "Let us check the explanation. You are still learning.",
+      "seconds": 3.396,
+      "bytes": 20375,
+      "mean_db": -17.7,
+      "sha256": "e87727c8c9da8d34d558e42440f582b91be54457b9f4d606d60a4af893ba4801"
+    },
+    {
+      "filename": "w16.mp3",
+      "text": "Good try. Keep thinking carefully.",
+      "seconds": 2.691,
+      "bytes": 16143,
+      "mean_db": -18.1,
+      "sha256": "9758c5686e6ece41f82037be2c6ef7617670a996fe8723b10111cac126e8ae10"
+    },
+    {
+      "filename": "w17.mp3",
+      "text": "Not this time. Take a breath and keep going.",
+      "seconds": 3.056,
+      "bytes": 18338,
+      "mean_db": -17.9,
+      "sha256": "45a8cc79e3d0c9fa4320e102be50e410573965aab77ce0c8cb1fe86d98bfc9bc"
+    },
+    {
+      "filename": "w18.mp3",
+      "text": "Look at the explanation. It will help you learn.",
+      "seconds": 3.474,
+      "bytes": 20845,
+      "mean_db": -17.7,
+      "sha256": "129c067ca1afda7c31faee7c8076b03a05dc4499eea0ab95c8ab4ea5c52ec15c"
+    },
+    {
+      "filename": "w19.mp3",
+      "text": "One mistake does not stop your progress. Keep learning.",
+      "seconds": 3.683,
+      "bytes": 22099,
+      "mean_db": -17.8,
+      "sha256": "460264e7c40246e2d4c77648159ec39b3f043e6880004f07f13098db8d2b233a"
+    }
+  ]
+}
